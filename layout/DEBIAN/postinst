@@ -1,0 +1,15 @@
+#!/bin/sh
+set -e
+
+PREF_DIR="/var/jb/var/mobile/Library/Preferences"
+PREF_FILE="$PREF_DIR/com.iospretend.iospretend.plist"
+
+mkdir -p "$PREF_DIR"
+chown mobile:mobile "$PREF_DIR" 2>/dev/null || true
+chmod 0755 "$PREF_DIR" 2>/dev/null || true
+if [ ! -f "$PREF_FILE" ]; then
+  printf '%s' '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>gpsEnabled</key><false/><key>simEnabled</key><false/><key>selectedApps</key><array/><key>region</key><string>SG</string><key>carrier</key><string>auto</string><key>lang</key><string>auto</string></dict></plist>' > "$PREF_FILE"
+fi
+chown mobile:mobile "$PREF_FILE" 2>/dev/null || true
+chmod 0644 "$PREF_FILE" 2>/dev/null || true
+exit 0

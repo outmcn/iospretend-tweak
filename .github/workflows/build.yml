@@ -1,0 +1,72 @@
+name: build-iospretend
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Theos
+        run: |
+          export THEOS=/opt/theos
+          sudo git clone --recursive --depth 1 https://github.com/theos/theos.git "$THEOS"
+          brew install ldid dpkg || true
+          cd /tmp
+          curl -fL -o sdks.zip https://github.com/theos/sdks/archive/refs/heads/master.zip
+          unzip -q sdks.zip
+          sudo mkdir -p "$THEOS/sdks"
+          sudo cp -R /tmp/sdks-master/iPhoneOS* "$THEOS/sdks/"
+      - name: Run repository checks
+        run: |
+          python3 --version
+          for t in tests/check_*.py; do echo "== $t"; python3 "$t"; done
+      - name: Build rootless package
+        run: |
+          export THEOS=/opt/theos
+          export THEOS_PACKAGE_SCHEME=rootless
+          make clean
+          make package FINALPACKAGE=1
+      - name: Normalize and sign
+        run: |
+          for deb in packages/*.deb; do
+            d=$(mktemp -d)
+            dpkg-deb -x "$deb" "$d"
+            dpkg-deb -e "$deb" "$d/DEBIAN"
+            find "$d" -name '*.plist' -exec plutil -convert xml1 {} \;
+            find "$d" \( -name '*.dylib' -o -path '*/iOSPretendPrefs.bundle/iOSPretendPrefs' \) -type f -exec ldid -S {} \;
+            rm -f "$deb"
+            dpkg-deb -Zgzip -b "$d" "$deb"
+            rm -rf "$d"
+          done
+      - name: Verify package
+        run: |
+          deb=$(find packages -name '*.deb' -print -quit)
+          d=$(mktemp -d)
+          dpkg-deb -x "$deb" "$d"
+          gps=$(find "$d" -name 'iOSPretendGPS.dylib' -print -quit)
+          sim=$(find "$d" -name 'iOSPretendDevice.dylib' -print -quit)
+          prefs=$(find "$d" -name 'iOSPretendPrefs' -type f -print -quit)
+          test -n "$gps" && test -n "$sim" && test -n "$prefs"
+          for f in "$gps" "$sim" "$prefs"; do
+            archs=$(lipo -archs "$f")
+            has_arm64=0; has_arm64e=0
+            for a in $archs; do
+              if [ "$a" = arm64 ]; then has_arm64=1; fi
+              if [ "$a" = arm64e ]; then has_arm64e=1; fi
+            done
+            test "$has_arm64" = 1
+            test "$has_arm64e" = 1
+            ldid -e "$f" >/dev/null
+          done
+          test "$(dpkg-deb -f "$deb" Package)" = com.iospretend.iospretend
+          test "$(dpkg-deb -f "$deb" Architecture)" = iphoneos-arm64
+          find "$d" -name '*.plist' -exec sh -c 'head -c 5 "$1" | grep -q "<?xml"' _ {} \;
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iOSPretend-rootless
+          path: packages/*.deb
+          if-no-files-found: error
