@@ -141,30 +141,32 @@ static void CFOReloadConfig(void) {
     }
     if (!base) base = regionConfig(@"SG");
 
-    NSMutableDictionary *cfg = [base mutableCopy];
-    NSString *carrierKey = @"auto";
-    NSString *langKey = @"auto";
-    id ck = prefs[@"carrier"];
-    if ([ck isKindOfClass:[NSString class]] && [ck length]) carrierKey = ck;
-    id lk = prefs[@"lang"];
-    if ([lk isKindOfClass:[NSString class]] && [lk length]) langKey = lk;
+    @autoreleasepool {
+        NSMutableDictionary *cfg = [base mutableCopy];
+        NSString *carrierKey = @"auto";
+        NSString *langKey = @"auto";
+        id ck = prefs[@"carrier"];
+        if ([ck isKindOfClass:[NSString class]] && [ck length]) carrierKey = ck;
+        id lk = prefs[@"lang"];
+        if ([lk isKindOfClass:[NSString class]] && [lk length]) langKey = lk;
 
-    NSDictionary *carrier = carrierConfig(carrierKey);
-    if (carrier) {
-        cfg[@"carrier"] = carrier[@"carrier"];
-        cfg[@"mcc"] = carrier[@"mcc"];
-        cfg[@"mnc"] = carrier[@"mnc"];
-    }
-
-    if (![langKey isEqualToString:@"auto"]) {
-        NSDictionary *lc = langConfig(langKey);
-        if (lc) {
-            cfg[@"lang"] = lc[@"lang"];
-            cfg[@"identifier"] = lc[@"identifier"];
-            cfg[@"preferred"] = lc[@"preferred"];
+        NSDictionary *carrier = carrierConfig(carrierKey);
+        if (carrier) {
+            cfg[@"carrier"] = carrier[@"carrier"];
+            cfg[@"mcc"] = carrier[@"mcc"];
+            cfg[@"mnc"] = carrier[@"mnc"];
         }
+
+        if (![langKey isEqualToString:@"auto"]) {
+            NSDictionary *lc = langConfig(langKey);
+            if (lc) {
+                cfg[@"lang"] = lc[@"lang"];
+                cfg[@"identifier"] = lc[@"identifier"];
+                cfg[@"preferred"] = lc[@"preferred"];
+            }
+        }
+        gConfig = [cfg copy];
     }
-    gConfig = [cfg copy];
 }
 
 static NSDictionary *currentConfig(void) {
@@ -174,11 +176,13 @@ static NSDictionary *currentConfig(void) {
 
 // Called by every hook getter: NO means "return the real value".
 static BOOL CFOShouldSpoofCurrentProcess(void) {
-    NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:kPrefsPath] ?: @{};
-    if (!CFONumberForKey(prefs, @"simEnabled")) return NO;
-    NSString *bundleID = NSBundle.mainBundle.bundleIdentifier;
-    NSArray *apps = prefs[@"selectedApps"];
-    return bundleID.length > 0 && [apps isKindOfClass:[NSArray class]] && [apps containsObject:bundleID];
+    @autoreleasepool {
+        NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:kPrefsPath] ?: @{};
+        if (!CFONumberForKey(prefs, @"simEnabled")) return NO;
+        NSString *bundleID = NSBundle.mainBundle.bundleIdentifier;
+        NSArray *apps = prefs[@"selectedApps"];
+        return bundleID.length > 0 && [apps isKindOfClass:[NSArray class]] && [apps containsObject:bundleID];
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -187,10 +191,12 @@ static BOOL CFOShouldSpoofCurrentProcess(void) {
 
 static NSCalendar *regionCalendar(void) {
     NSDictionary *cfg = currentConfig();
-    NSCalendar *cal = [NSCalendar calendarWithIdentifier:NSCalendarIdentifierGregorian];
-    cal.locale = [NSLocale localeWithLocaleIdentifier:cfg[@"identifier"]];
-    cal.timeZone = [NSTimeZone timeZoneWithName:cfg[@"tz"]];
-    return cal;
+    @autoreleasepool {
+        NSCalendar *cal = [NSCalendar calendarWithIdentifier:NSCalendarIdentifierGregorian];
+        cal.locale = [NSLocale localeWithLocaleIdentifier:cfg[@"identifier"]];
+        cal.timeZone = [NSTimeZone timeZoneWithName:cfg[@"tz"]];
+        return [cal copy];
+    }
 }
 
 // ---------------------------------------------------------------------------

@@ -5,6 +5,7 @@
 #import <Preferences/PSSpecifier.h>
 #import <CoreFoundation/CoreFoundation.h>
 #import <spawn.h>
+#import <notify.h>
 #import <math.h>
 
 extern char **environ;
@@ -172,8 +173,7 @@ static NSString * const LMPreferencesChanged = @"com.iospretend.iospretend/Reloa
         }
     }
     if (key) {
-        NSMutableDictionary *prefs = [[self preferences] mutableCopy];
-        if (!prefs) prefs = [NSMutableDictionary dictionary];
+        NSMutableDictionary *prefs = [[self preferences] mutableCopy] ?: [NSMutableDictionary dictionary];
         if (value) prefs[key] = value; else [prefs removeObjectForKey:key];
         BOOL saved = [prefs writeToFile:LMPreferencesPath atomically:YES];
         if (!saved) {
@@ -297,10 +297,17 @@ static NSString * const LMPreferencesChanged = @"com.iospretend.iospretend/Reloa
         if (![[NSFileManager defaultManager] fileExistsAtPath:killallPath]) {
             killallPath = @"/usr/bin/killall";
         }
+        if (![[NSFileManager defaultManager] fileExistsAtPath:killallPath]) {
+            notify_post("com.apple.springboard.respring");
+            return;
+        }
         char path[512];
         [killallPath getCString:path maxLength:sizeof(path) encoding:NSUTF8StringEncoding];
         char *const argv[] = {path, (char *)"-9", (char *)"SpringBoard", NULL};
-        posix_spawn(&pid, path, NULL, NULL, argv, environ);
+        int ret = posix_spawn(&pid, path, NULL, NULL, argv, environ);
+        if (ret != 0) {
+            notify_post("com.apple.springboard.respring");
+        }
     }]];
     [self presentViewController:alert animated:YES completion:nil];
 }

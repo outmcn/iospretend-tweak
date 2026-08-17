@@ -39,6 +39,8 @@ static BOOL CFOGPSShouldApply(void) {
     return [cfoSelectedApps containsObject:bundleID];
 }
 
+// Cache selected apps at reload time to avoid per-hook plist reads.
+
 %hook CLLocation
 - (CLLocationCoordinate2D)coordinate {
     if (CFOGPSShouldApply() && CFOIsValidLatitude(cfoLatitude) && CFOIsValidLongitude(cfoLongitude)) {
