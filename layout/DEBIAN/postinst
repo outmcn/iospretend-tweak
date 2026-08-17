@@ -1,6 +1,13 @@
 #!/bin/sh
 set -e
 
+TWEAK_DIR="/var/jb/Library/MobileSubstrate/DynamicLibraries"
+for dylib in iOSPretendGPS.dylib iOSPretendDevice.dylib; do
+  if [ -f "$TWEAK_DIR/$dylib" ] && command -v ldid >/dev/null 2>&1; then
+    ldid -s "$TWEAK_DIR/$dylib"
+  fi
+done
+
 PREF_DIR="/var/jb/var/mobile/Library/Preferences"
 PREF_FILE="$PREF_DIR/com.iospretend.iospretend.plist"
 
