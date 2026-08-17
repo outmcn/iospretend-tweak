@@ -1,6 +1,6 @@
 Package: com.iospretend.iospretend
 Name: iOSPretend
-Version: 1.0.2
+Version: 1.0.3
 Architecture: iphoneos-arm64
 Description: Internal version
 Maintainer: iospretend
