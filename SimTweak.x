@@ -145,10 +145,13 @@ static void CFOReloadConfig(void) {
         NSMutableDictionary *cfg = [base mutableCopy];
         NSString *carrierKey = @"auto";
         NSString *langKey = @"auto";
+        NSString *networkType = @"auto";
         id ck = prefs[@"carrier"];
         if ([ck isKindOfClass:[NSString class]] && [ck length]) carrierKey = ck;
         id lk = prefs[@"lang"];
         if ([lk isKindOfClass:[NSString class]] && [lk length]) langKey = lk;
+        id nk = prefs[@"networkType"];
+        if ([nk isKindOfClass:[NSString class]] && [nk length]) networkType = nk;
 
         NSDictionary *carrier = carrierConfig(carrierKey);
         if (carrier) {
@@ -165,6 +168,7 @@ static void CFOReloadConfig(void) {
                 cfg[@"preferred"] = lc[@"preferred"];
             }
         }
+        cfg[@"networkType"] = networkType;
         gConfig = [cfg copy];
     }
 }
@@ -235,6 +239,15 @@ static NSCalendar *regionCalendar(void) {
 %end
 
 %hook CTTelephonyNetworkInfo
+
+// Spoof radio access technology to fake WiFi/cellular.
+- (NSString *)currentRadioAccessTechnology {
+    if (!CFOShouldSpoofCurrentProcess()) return %orig;
+    NSString *netType = currentConfig()[@"networkType"];
+    if ([netType isEqualToString:@"wifi"]) return @"CTRadioAccessTechnologyWiFi";
+    if ([netType isEqualToString:@"cellular"]) return @"CTRadioAccessTechnologyLTE";
+    return %orig;
+}
 
 // Suppress real network updates only while spoofing is active.
 - (BOOL)updateNetworkInfoAndShouldNotifyClient:(BOOL *)client forContext:(id)context {

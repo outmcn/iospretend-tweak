@@ -69,7 +69,8 @@ static NSString * const LMPreferencesChanged = @"com.iospretend.iospretend/Reloa
     NSArray *simRows = @[
         @[@"国家/地区", @"region", NSStringFromSelector(@selector(selectRegion))],
         @[@"语言", @"lang", NSStringFromSelector(@selector(selectLanguage))],
-        @[@"运营商", @"carrier", NSStringFromSelector(@selector(selectCarrier))]
+        @[@"运营商", @"carrier", NSStringFromSelector(@selector(selectCarrier))],
+        @[@"网络类型", @"networkType", NSStringFromSelector(@selector(selectNetworkType))]
     ];
     for (NSArray *row in simRows) {
         PSSpecifier *item = [PSSpecifier preferenceSpecifierNamed:row[0] target:self set:NULL get:NULL detail:nil cell:PSLinkCell edit:nil];
@@ -201,6 +202,11 @@ static NSString * const LMPreferencesChanged = @"com.iospretend.iospretend/Reloa
         NSDictionary *titles = @{@"auto":@"跟随国家",@"ja":@"日语",@"ko":@"韩语",@"zh-Hans":@"简体中文",@"zh-Hant":@"繁体中文",@"en":@"英语",@"ms":@"马来语",@"de":@"德语",@"fr":@"法语",@"th":@"泰语"};
         return titles[value ?: @"auto"] ?: @"跟随国家";
     }
+    if ([key isEqualToString:@"networkType"]) {
+        NSDictionary *titles = @{@"auto": @"自动", @"wifi": @"WiFi", @"cellular": @"蜂窝数据"};
+        return titles[value ?: @"auto"] ?: @"自动";
+    }
+
     if ([key isEqualToString:@"carrier"]) {
         NSDictionary *titles = @{
             @"auto":@"自动", @"SG-ST":@"Singtel", @"SG-SH":@"StarHub", @"SG-M1":@"M1",
@@ -238,6 +244,8 @@ static NSString * const LMPreferencesChanged = @"com.iospretend.iospretend/Reloa
 
 - (void)selectRegion { [self showChoiceWithTitle:@"国家/地区" key:@"region" values:@[@"SG",@"MY",@"TW",@"JP",@"KR",@"TH",@"US",@"GB",@"DE",@"FR",@"CA",@"AU"] titles:@[@"新加坡",@"马来西亚",@"台湾",@"日本",@"韩国",@"泰国",@"美国",@"英国",@"德国",@"法国",@"加拿大",@"澳大利亚"]]; }
 - (void)selectLanguage { [self showChoiceWithTitle:@"语言" key:@"lang" values:@[@"auto",@"ja",@"ko",@"zh-Hans",@"zh-Hant",@"en",@"ms",@"de",@"fr",@"th"] titles:@[@"跟随国家",@"日语",@"韩语",@"简体中文",@"繁体中文",@"英语",@"马来语",@"德语",@"法语",@"泰语"]]; }
+- (void)selectNetworkType { [self showChoiceWithTitle:@"网络类型" key:@"networkType" values:@[@"auto",@"wifi",@"cellular"] titles:@[@"自动",@"WiFi",@"蜂窝数据"]]; }
+
 - (void)selectCarrier {
     NSString *region = [self preferences][@"region"] ?: @"SG";
     NSDictionary *map = @{
